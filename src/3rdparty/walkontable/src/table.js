@@ -262,89 +262,39 @@ class Table {
     const columnHeaders = wot.getSetting('columnHeaders');
     const columnHeadersCount = columnHeaders.length;
     let syncScroll = false;
-    let runFastDraw = fastDraw;
+    let runFastDraw = wtViewport.createRenderCalculators(fastDraw);
 
-    if (!this.isClone) {
-      this.holderOffset = offset(this.holder);
-      runFastDraw = wtViewport.createRenderCalculators(runFastDraw);
+    this.holderOffset = offset(this.holder);
 
-      if (rowHeadersCount && !wot.getSetting('fixedColumnsLeft')) {
-        const leftScrollPos = wtOverlays.leftOverlay.getScrollPosition();
-        const previousState = this.correctHeaderWidth;
-
-        this.correctHeaderWidth = leftScrollPos > 0;
-
-        if (previousState !== this.correctHeaderWidth) {
-          runFastDraw = false;
-        }
+    if (rowHeadersCount && !wot.getSetting('fixedColumnsLeft')) {
+      const leftScrollPos = wtOverlays.leftOverlay.getScrollPosition();
+      const previousState = this.correctHeaderWidth;
+      this.correctHeaderWidth = leftScrollPos > 0;
+      if (previousState !== this.correctHeaderWidth) {
+        runFastDraw = false;
       }
     }
 
-    if (!this.isClone) {
-      syncScroll = wtOverlays.prepareOverlays();
-    }
+    syncScroll = wtOverlays.prepareOverlays();
 
     if (runFastDraw) {
-      if (!this.isClone) {
-        // in case we only scrolled without redraw, update visible rows information in oldRowsCalculator
-        wtViewport.createVisibleCalculators();
-      }
-      if (wtOverlays) {
-        wtOverlays.refresh(true);
-      }
+      // in case we only scrolled without redraw, update visible rows information in oldRowsCalculator
+      wtViewport.createVisibleCalculators();
+      wtOverlays.refresh(true);
     } else {
-      const { cloneOverlay } = wot;
-
-      if (this.isClone) {
-        this.tableOffset = this.wot.cloneSource.wtTable.tableOffset;
-      } else {
-        this.tableOffset = offset(this.TABLE);
-      }
-      let startRow;
-
-      if (Overlay.isOverlayTypeOf(cloneOverlay, Overlay.CLONE_TOP) ||
-          Overlay.isOverlayTypeOf(cloneOverlay, Overlay.CLONE_TOP_LEFT_CORNER)) {
-        startRow = 0;
-      } else if (Overlay.isOverlayTypeOf(cloneOverlay, Overlay.CLONE_BOTTOM) ||
-                 Overlay.isOverlayTypeOf(cloneOverlay, Overlay.CLONE_BOTTOM_LEFT_CORNER)) {
-        startRow = Math.max(totalRows - wot.getSetting('fixedRowsBottom'), 0);
-      } else {
-        startRow = wtViewport.rowsRenderCalculator.startRow;
-      }
-      let startColumn;
-
-      if (Overlay.isOverlayTypeOf(cloneOverlay, Overlay.CLONE_LEFT) ||
-          Overlay.isOverlayTypeOf(cloneOverlay, Overlay.CLONE_TOP_LEFT_CORNER) ||
-          Overlay.isOverlayTypeOf(cloneOverlay, Overlay.CLONE_BOTTOM_LEFT_CORNER)) {
-        startColumn = 0;
-      } else {
-        startColumn = wtViewport.columnsRenderCalculator.startColumn;
-      }
+      this.tableOffset = offset(this.TABLE);
+      const startRow = wtViewport.rowsRenderCalculator.startRow;
+      const startColumn = wtViewport.columnsRenderCalculator.startColumn;
       this.rowFilter = new RowFilter(startRow, totalRows, columnHeadersCount);
       this.columnFilter = new ColumnFilter(startColumn, totalColumns, rowHeadersCount);
-
       this.alignOverlaysWithTrimmingContainer();
 
-      let performRedraw = this.isClone;
-
       // Only master table rendering can be skipped
-      if (!this.isClone) {
-        const skipRender = {};
-
-        this.wot.getSetting('beforeDraw', true, skipRender);
-
-        performRedraw = skipRender.skipRender !== true;
-      }
-
+      const skipRender = {};
+      this.wot.getSetting('beforeDraw', true, skipRender);
+      const performRedraw = skipRender.skipRender !== true;
       if (performRedraw) {
         this.tableRenderer.setHeaderContentRenderers(rowHeaders, columnHeaders);
-
-        if (Overlay.isOverlayTypeOf(cloneOverlay, Overlay.CLONE_BOTTOM) ||
-            Overlay.isOverlayTypeOf(cloneOverlay, Overlay.CLONE_BOTTOM_LEFT_CORNER)) {
-          // do NOT render headers on the bottom or bottom-left corner overlay
-          this.tableRenderer.setHeaderContentRenderers(rowHeaders, []);
-        }
-
         this.resetOversizedRows();
 
         this.tableRenderer
@@ -352,67 +302,55 @@ class Table {
           .setFilters(this.rowFilter, this.columnFilter)
           .render();
 
-        let workspaceWidth;
-
-        if (!this.isClone) {
-          workspaceWidth = this.wot.wtViewport.getWorkspaceWidth();
-          this.wot.wtViewport.containerWidth = null;
-        }
+        const workspaceWidth = this.wot.wtViewport.getWorkspaceWidth();
+        this.wot.wtViewport.containerWidth = null;
 
         this.markOversizedColumnHeaders();
         this.adjustColumnHeaderHeights();
 
-        if (!this.isClone || this.wot.isOverlayName(Overlay.CLONE_BOTTOM)) {
-          this.markOversizedRows();
+        this.markOversizedRows();
+
+        this.wot.wtViewport.createVisibleCalculators();
+        this.wot.wtOverlays.refresh(false);
+        this.wot.wtOverlays.applyToDOM();
+
+        const hiderWidth = outerWidth(this.hider);
+        const tableWidth = outerWidth(this.TABLE);
+
+        if (hiderWidth !== 0 && (tableWidth !== hiderWidth)) {
+          // Recalculate the column widths, if width changes made in the overlays removed the scrollbar, thus changing the viewport width.
+          this.columnUtils.calculateWidths();
+          this.tableRenderer.renderer.colGroup.render();
         }
 
-        if (!this.isClone) {
-          this.wot.wtViewport.createVisibleCalculators();
-          this.wot.wtOverlays.refresh(false);
-          this.wot.wtOverlays.applyToDOM();
-
-          const hiderWidth = outerWidth(this.hider);
-          const tableWidth = outerWidth(this.TABLE);
-
-          if (hiderWidth !== 0 && (tableWidth !== hiderWidth)) {
-            // Recalculate the column widths, if width changes made in the overlays removed the scrollbar, thus changing the viewport width.
-            this.columnUtils.calculateWidths();
-            this.tableRenderer.renderer.colGroup.render();
-          }
-
-          if (workspaceWidth !== this.wot.wtViewport.getWorkspaceWidth()) {
-            // workspace width changed though to shown/hidden vertical scrollbar. Let's reapply stretching
-            this.wot.wtViewport.containerWidth = null;
-            this.columnUtils.calculateWidths();
-            this.tableRenderer.renderer.colGroup.render();
-          }
-
-          this.wot.getSetting('onDraw', true);
-
-        } else if (this.wot.isOverlayName(Overlay.CLONE_BOTTOM)) {
-          this.wot.cloneSource.wtOverlays.adjustElementsSize();
+        if (workspaceWidth !== this.wot.wtViewport.getWorkspaceWidth()) {
+          // workspace width changed though to shown/hidden vertical scrollbar. Let's reapply stretching
+          this.wot.wtViewport.containerWidth = null;
+          this.columnUtils.calculateWidths();
+          this.tableRenderer.renderer.colGroup.render();
         }
+
+        this.wot.getSetting('onDraw', true);
       }
     }
     this.refreshSelections(runFastDraw);
 
-    if (!this.isClone) {
-      wtOverlays.topOverlay.resetFixedPosition();
+    wtOverlays.topOverlay.resetFixedPosition();
 
-      if (wtOverlays.bottomOverlay.clone) {
-        wtOverlays.bottomOverlay.resetFixedPosition();
-      }
-
-      wtOverlays.leftOverlay.resetFixedPosition();
-
-      if (wtOverlays.topLeftCornerOverlay) {
-        wtOverlays.topLeftCornerOverlay.resetFixedPosition();
-      }
-
-      if (wtOverlays.bottomLeftCornerOverlay && wtOverlays.bottomLeftCornerOverlay.clone) {
-        wtOverlays.bottomLeftCornerOverlay.resetFixedPosition();
-      }
+    if (wtOverlays.bottomOverlay.clone) {
+      wtOverlays.bottomOverlay.resetFixedPosition();
     }
+
+    wtOverlays.leftOverlay.resetFixedPosition();
+
+    if (wtOverlays.topLeftCornerOverlay) {
+      wtOverlays.topLeftCornerOverlay.resetFixedPosition();
+    }
+
+    if (wtOverlays.bottomLeftCornerOverlay && wtOverlays.bottomLeftCornerOverlay.clone) {
+      wtOverlays.bottomLeftCornerOverlay.resetFixedPosition();
+    }
+
     if (syncScroll) {
       wtOverlays.syncScrollWithMaster();
     }
