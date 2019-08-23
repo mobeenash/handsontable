@@ -435,7 +435,7 @@ class CollapsibleColumns extends BasePlugin {
     }
 
     rangeEach(firstChildColspan, currentHeaderColspan - 1, (i) => {
-      const colToHide = coords.col + i;
+      const colToHide = coords.col + i -1;
 
       switch (action) {
         case 'collapse':
