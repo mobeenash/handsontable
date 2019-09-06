@@ -29,7 +29,7 @@
  * FROM USE OR INABILITY TO USE THIS SOFTWARE.
  * 
  * Version: 7.1.1
- * Release date: 12/08/2019 (built at 23/08/2019 16:40:58)
+ * Release date: 12/08/2019 (built at 06/09/2019 12:58:05)
  */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
@@ -990,7 +990,7 @@ function getParent(element) {
 function closest(element, nodes, until) {
   var elementToCheck = element;
 
-  while (elementToCheck !== null && elementToCheck !== until) {
+  while (elementToCheck !== null && elementToCheck !== until && elementToCheck !== undefined) {
     if (elementToCheck.nodeType === Node.ELEMENT_NODE && (nodes.indexOf(elementToCheck.nodeName) > -1 || nodes.indexOf(elementToCheck) > -1)) {
       return elementToCheck;
     }
@@ -59067,7 +59067,7 @@ Handsontable.EventManager = _eventManager.default;
 Handsontable._getListenersCounter = _eventManager.getListenersCounter; // For MemoryLeak tests
 
 Handsontable.packageName = 'handsontable';
-Handsontable.buildDate = "23/08/2019 16:40:58";
+Handsontable.buildDate = "06/09/2019 12:58:05";
 Handsontable.version = "7.1.1"; // Export Hooks singleton
 
 Handsontable.hooks = _pluginHooks.default.getSingleton(); // TODO: Remove this exports after rewrite tests about this module

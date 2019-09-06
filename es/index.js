@@ -49,7 +49,7 @@ Handsontable.EventManager = EventManager;
 Handsontable._getListenersCounter = getListenersCounter; // For MemoryLeak tests
 
 Handsontable.packageName = 'handsontable';
-Handsontable.buildDate = "23/08/2019 16:40:44";
+Handsontable.buildDate = "06/09/2019 12:57:47";
 Handsontable.version = "7.1.1"; // Export Hooks singleton
 
 Handsontable.hooks = Hooks.getSingleton(); // TODO: Remove this exports after rewrite tests about this module

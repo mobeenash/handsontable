@@ -71,7 +71,7 @@ export function getParent(element) {
 export function closest(element, nodes, until) {
   var elementToCheck = element;
 
-  while (elementToCheck !== null && elementToCheck !== until) {
+  while (elementToCheck !== null && elementToCheck !== until && elementToCheck !== undefined) {
     if (elementToCheck.nodeType === Node.ELEMENT_NODE && (nodes.indexOf(elementToCheck.nodeName) > -1 || nodes.indexOf(elementToCheck) > -1)) {
       return elementToCheck;
     }
