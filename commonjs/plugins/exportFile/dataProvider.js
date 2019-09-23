@@ -152,7 +152,7 @@ function () {
 
       var headers = [];
 
-      if (this.options.columnHeaders) {
+      if (this.options.columnHeaders === true) {
         var _this$_getDataRange3 = this._getDataRange(),
             startCol = _this$_getDataRange3.startCol,
             endCol = _this$_getDataRange3.endCol;
@@ -165,6 +165,8 @@ function () {
 
           headers.push(colHeaders[column]);
         });
+      } else if (Array.isArray(this.options.columnHeaders)) {
+        headers = this.options.columnHeaders;
       }
 
       return headers;

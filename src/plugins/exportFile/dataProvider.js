@@ -90,9 +90,8 @@ class DataProvider {
    * @return {Array}
    */
   getColumnHeaders() {
-    const headers = [];
-
-    if (this.options.columnHeaders) {
+    let headers = [];
+    if (this.options.columnHeaders === true) {
       const { startCol, endCol } = this._getDataRange();
       const colHeaders = this.hot.getColHeader();
 
@@ -102,6 +101,8 @@ class DataProvider {
         }
         headers.push(colHeaders[column]);
       });
+    } else if (Array.isArray(this.options.columnHeaders)) {
+      headers = this.options.columnHeaders;
     }
 
     return headers;
