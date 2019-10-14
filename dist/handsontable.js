@@ -29,7 +29,7 @@
  * FROM USE OR INABILITY TO USE THIS SOFTWARE.
  * 
  * Version: 7.1.1
- * Release date: 12/08/2019 (built at 23/09/2019 18:18:10)
+ * Release date: 12/08/2019 (built at 14/10/2019 18:45:50)
  */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
@@ -38669,7 +38669,7 @@ Handsontable.EventManager = _eventManager.default;
 Handsontable._getListenersCounter = _eventManager.getListenersCounter; // For MemoryLeak tests
 
 Handsontable.packageName = 'handsontable';
-Handsontable.buildDate = "23/09/2019 18:18:10";
+Handsontable.buildDate = "14/10/2019 18:45:50";
 Handsontable.version = "7.1.1"; // Export Hooks singleton
 
 Handsontable.hooks = _pluginHooks.default.getSingleton(); // TODO: Remove this exports after rewrite tests about this module
@@ -70076,6 +70076,34 @@ function (_BasePlugin) {
       var nextLevel = level + 1;
       var childColspanLevel = colspanArray[nextLevel];
       var firstChildColspan = childColspanLevel ? childColspanLevel[childHeaders[0]].colspan || 1 : 1;
+      var displayIndex = currentHeaderColspan;
+
+      if (level === 0) {
+        var nestedColParent = 0;
+        var lvl0Setting = this.nestedHeadersPlugin.settings[level];
+        var col = 0;
+
+        for (var i = 0; i < lvl0Setting.length; i++) {
+          if (col >= coords.col) {
+            nestedColParent = i;
+            break;
+          }
+
+          if (lvl0Setting[i] && lvl0Setting[i].colspan) {
+            col += lvl0Setting[i].colspan;
+          } else {
+            col += 1;
+          }
+        }
+
+        var levelD = this.nestedHeadersPlugin.settings[level][nestedColParent];
+
+        if (levelD && levelD.displayIndex) {
+          displayIndex = levelD.displayIndex;
+        }
+      }
+
+      displayIndex = displayIndex + coords.col - 1;
 
       while (firstChildColspan === currentHeaderColspan && nextLevel < this.columnHeaderLevelCount) {
         nextLevel += 1;
@@ -70083,26 +70111,28 @@ function (_BasePlugin) {
         firstChildColspan = childColspanLevel ? childColspanLevel[childHeaders[0]].colspan || 1 : 1;
       }
 
-      (0, _number.rangeEach)(firstChildColspan, currentHeaderColspan - 1, function (i) {
+      (0, _number.rangeEach)(firstChildColspan, currentHeaderColspan, function (i) {
         var colToHide = coords.col + i - 1;
 
-        switch (action) {
-          case 'collapse':
-            if (!_this5.hiddenColumnsPlugin.isHidden(colToHide)) {
-              hiddenColumns.push(colToHide);
-            }
+        if (displayIndex !== colToHide) {
+          switch (action) {
+            case 'collapse':
+              if (!_this5.hiddenColumnsPlugin.isHidden(colToHide)) {
+                hiddenColumns.push(colToHide);
+              }
 
-            break;
+              break;
 
-          case 'expand':
-            if (_this5.hiddenColumnsPlugin.isHidden(colToHide)) {
-              hiddenColumns.splice(hiddenColumns.indexOf(colToHide), 1);
-            }
+            case 'expand':
+              if (_this5.hiddenColumnsPlugin.isHidden(colToHide)) {
+                hiddenColumns.splice(hiddenColumns.indexOf(colToHide), 1);
+              }
 
-            break;
+              break;
 
-          default:
-            break;
+            default:
+              break;
+          }
         }
       });
       this.hot.render();
