@@ -427,31 +427,51 @@ class CollapsibleColumns extends BasePlugin {
     let nextLevel = level + 1;
     let childColspanLevel = colspanArray[nextLevel];
     let firstChildColspan = childColspanLevel ? childColspanLevel[childHeaders[0]].colspan || 1 : 1;
-
+    let displayIndex = currentHeaderColspan;
+    if (level === 0) {
+      let nestedColParent = 0;
+      const lvl0Setting = this.nestedHeadersPlugin.settings[level];
+      let col = 0;
+      for (let i = 0; i < lvl0Setting.length; i++) {
+        if (col >= coords.col) {
+          nestedColParent = i;
+          break;
+        }
+        if (lvl0Setting[i] && lvl0Setting[i].colspan) {
+          col += lvl0Setting[i].colspan;
+        } else {
+          col += 1;
+        }
+      }
+      const levelD = this.nestedHeadersPlugin.settings[level][nestedColParent];
+      if (levelD && levelD.displayIndex) { displayIndex = levelD.displayIndex; }
+    }
+    displayIndex = displayIndex + coords.col - 1;
     while (firstChildColspan === currentHeaderColspan && nextLevel < this.columnHeaderLevelCount) {
       nextLevel += 1;
       childColspanLevel = colspanArray[nextLevel];
       firstChildColspan = childColspanLevel ? childColspanLevel[childHeaders[0]].colspan || 1 : 1;
     }
 
-    rangeEach(firstChildColspan, currentHeaderColspan - 1, (i) => {
-      const colToHide = coords.col + i -1;
+    rangeEach(firstChildColspan, currentHeaderColspan, (i) => {
+      const colToHide = coords.col + i - 1;
+      if (displayIndex !== colToHide) {
+        switch (action) {
+          case 'collapse':
+            if (!this.hiddenColumnsPlugin.isHidden(colToHide)) {
+              hiddenColumns.push(colToHide);
+            }
 
-      switch (action) {
-        case 'collapse':
-          if (!this.hiddenColumnsPlugin.isHidden(colToHide)) {
-            hiddenColumns.push(colToHide);
-          }
+            break;
+          case 'expand':
+            if (this.hiddenColumnsPlugin.isHidden(colToHide)) {
+              hiddenColumns.splice(hiddenColumns.indexOf(colToHide), 1);
+            }
 
-          break;
-        case 'expand':
-          if (this.hiddenColumnsPlugin.isHidden(colToHide)) {
-            hiddenColumns.splice(hiddenColumns.indexOf(colToHide), 1);
-          }
-
-          break;
-        default:
-          break;
+            break;
+          default:
+            break;
+        }
       }
     });
 
